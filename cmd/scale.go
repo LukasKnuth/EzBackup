@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var Namespace string
+
 // scaleCmd represents the scale command
 var scaleCmd = &cobra.Command{
 	Use:   "scale [PVC]",
@@ -19,15 +21,14 @@ data to disc is to shut the application down.
 For other use-cases like static asset hosting, this might not be required.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Attempting to scale down anything that uses PVC: %s\n", args[0])
+		fmt.Printf("Command: scale\nPersistent Volume Claim: %s\nNamespace: %s\n\n", args[0], Namespace)
 
-		// todo add namespace flag!
-
-		options, err := k8s.FromKubeconfig("/Users/lukasknuth/k3sup/kubeconfig", "infrastructure") // todo change to in-cluster config
+		options, err := k8s.FromKubeconfig("/Users/lukasknuth/k3sup/kubeconfig", Namespace)
 		if err != nil {
 			panic(err.Error())
 		}
 
+		fmt.Println("Looking for Pods mounting the PVC...")
 		filtered, err := k8s.FindMountingPods(args[0], options)
 		if err != nil {
 			panic(err.Error())
@@ -59,7 +60,7 @@ func init() {
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// scaleCmd.PersistentFlags().String("foo", "", "A help for foo")
+	rootCmd.PersistentFlags().StringVarP(&Namespace, "namespace", "n", "default", "The Kubernetes namespace to work inside of")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:

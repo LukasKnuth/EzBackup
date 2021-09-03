@@ -116,7 +116,7 @@ func doDependencyTree(resource Dependency, toScale []Dependency, level int, opti
 			if err != nil {
 				return nil, err
 			} else if ownerRes != nil {
-				fmt.Printf("%s-> %s: %s\n", strings.Repeat(" ", level), ownerRes.MetaKind(), ownerRes.MetaName())
+				fmt.Printf("%sowned by %s: %s\n", strings.Repeat(" ", level), ownerRes.MetaKind(), ownerRes.MetaName())
 				toScale, err = doDependencyTree(ownerRes, toScale, level + 1, options)
 				if err != nil {
 					return nil, err
