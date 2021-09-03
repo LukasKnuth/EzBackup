@@ -3,7 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"strings"
+
+	"github.com/LukasKnuth/EzBackup/k8s"
 
 	"github.com/spf13/cobra"
 
@@ -25,9 +26,9 @@ data to disc is to shut the application down.
 For other use-cases like static asset hosting, this might not be required.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Attempting to scale down anything that uses %s\n", args[0])
+		fmt.Printf("Attempting to scale down anything that uses PVC: %s\n", args[0])
 
-		config, err := clientcmd.BuildConfigFromFlags("", "/Users/lukasknuth/k3sup/kubeconfig")
+		config, err := clientcmd.BuildConfigFromFlags("", "/Users/lukasknuth/k3sup/kubeconfig") // todo change to in-cluster config
 		if err != nil {
 			panic(err.Error())
 		}
@@ -47,18 +48,21 @@ For other use-cases like static asset hosting, this might not be required.`,
 		}
 
 		filtered := filterMountingPods(pods.Items, args[0])
-		tree := make([]metav1.ObjectMeta, 0)
+		options := k8s.RequestOptions{Namespace: "infrastructure", Context: context.TODO(), Clientset: clientset}
+		tree := make([]k8s.Dependency, 0)
+
 		for _, pod := range filtered {
-			fmt.Printf("Mounted by  %s: %s\n", "Pod", pod.Name)
-			options := RequestOptions{Namespace: "infrastructure", Context: context.TODO(), Clientset: clientset}
-			tree, err = dependencyTree(pod.ObjectMeta, tree, 1, &options)
+			fmt.Printf("Mounted by %s: %s\n", "Pod", pod.Name)	
+			podDependencies, err := k8s.DependencyTree(&pod, &options)
 			if err != nil {
 				panic(err.Error())
+			} else {
+				tree = append(tree, podDependencies...)
 			}
 		}
 		fmt.Printf("Should scale %d resources\n", len(tree))
 		for _, res := range tree {
-			fmt.Printf("  %s\n", res.Name)
+			fmt.Printf("  %s: %s\n", res.MetaKind(), res.MetaName())
 		}
 	},
 }
@@ -87,61 +91,4 @@ func filterMountingPods(pods []corev1.Pod, pvcName string) []corev1.Pod {
 		}
 	}
 	return filtered
-}
-
-type RequestOptions struct {
-	Clientset *kubernetes.Clientset
-	Context context.Context
-	Namespace string
-}
-
-func dependencyTree(resource metav1.ObjectMeta, toScale []metav1.ObjectMeta, level int, options *RequestOptions) ([]metav1.ObjectMeta, error) {
-	if len(resource.OwnerReferences) > 0 {
-		for _, owner := range resource.OwnerReferences {
-			ownerRes, err := fetchResource(&owner, options)
-			if err != nil {
-				return nil, err
-			} else if ownerRes != nil {
-				fmt.Printf("%s-> %s (%s)\n", strings.Repeat(" ", level), ownerRes.Name, "todo") // todo use wrappers instead?
-				toScale, err = dependencyTree(*ownerRes, toScale, level + 1, options)
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				fmt.Printf("%s-> Unsupported owner %s of type %s\n", strings.Repeat(" ", level), owner.Name, owner.Kind)
-			}
-		}
-		return toScale, nil
-	} else {
-		return append(toScale, resource), nil
-	}
-}
-
-func fetchResource(ref *metav1.OwnerReference, options *RequestOptions) (*metav1.ObjectMeta, error) {
-	switch ref.Kind {
-	case "ReplicaSet":
-		rs, err := options.Clientset.AppsV1().ReplicaSets(options.Namespace).Get(options.Context, ref.Name, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		} else {
-			return &rs.ObjectMeta, nil
-		}
-	case "Deployment":
-		d, err := options.Clientset.AppsV1().Deployments(options.Namespace).Get(options.Context, ref.Name, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		} else {
-			return &d.ObjectMeta, nil
-		}
-	case "Job":
-		fallthrough
-	case "CronJob":
-		fallthrough
-	case "DaemonSet":
-		fallthrough
-	case "StatefulSet":
-		fallthrough
-	default:
-		return nil, nil
-	}
 }
