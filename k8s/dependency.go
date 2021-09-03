@@ -4,10 +4,12 @@ import (
 	"context"
 	"strings"
 	"fmt"
+	"errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	batchv1 "k8s.io/api/batch/v1"
 
 	"k8s.io/client-go/kubernetes"
 )
@@ -60,6 +62,55 @@ func (r replicaSet) Owners() []metav1.OwnerReference {
 	return r.OwnerReferences
 }
 
+type job struct { *batchv1.Job }
+
+func (r job) MetaName() string {
+	return r.Name
+}
+func (r job) MetaKind() string {
+	return "Job"
+}
+func (r job) Owners() []metav1.OwnerReference {
+	return r.OwnerReferences
+}
+
+type cronJob struct { *batchv1.CronJob }
+
+func (r cronJob) MetaName() string {
+	return r.Name
+}
+func (r cronJob) MetaKind() string {
+	return "CronJob"
+}
+func (r cronJob) Owners() []metav1.OwnerReference {
+	return r.OwnerReferences
+}
+
+type daemonSet struct { *appsv1.DaemonSet }
+
+func (r daemonSet) MetaName() string {
+	return r.Name
+}
+func (r daemonSet) MetaKind() string {
+	return "DaemonSet"
+}
+func (r daemonSet) Owners() []metav1.OwnerReference {
+	return r.OwnerReferences
+}
+
+type statefulSet struct { *appsv1.StatefulSet }
+
+func (r statefulSet) MetaName() string {
+	return r.Name
+}
+func (r statefulSet) MetaKind() string {
+	return "StatefulSet"
+}
+func (r statefulSet) Owners() []metav1.OwnerReference {
+	return r.OwnerReferences
+}
+
+
 // ----------- FUNCTIONS -------------
 
 func DependencyTree(mountingPod *corev1.Pod, options *RequestOptions) ([]Dependency, error) {
@@ -79,8 +130,6 @@ func doDependencyTree(resource Dependency, toScale []Dependency, level int, opti
 				if err != nil {
 					return nil, err
 				}
-			} else {
-				fmt.Printf("%s-> Unsupported owner %s: %s\n", strings.Repeat(" ", level), owner.Kind, owner.Name)
 			}
 		}
 		return toScale, nil
@@ -106,14 +155,34 @@ func fetchResource(ref *metav1.OwnerReference, options *RequestOptions) (Depende
 			return deployment{d}, nil
 		}
 	case "Job":
-		fallthrough
+		j, err := options.Clientset.BatchV1().Jobs(options.Namespace).Get(options.Context, ref.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		} else {
+			return job{j}, nil
+		}
 	case "CronJob":
-		fallthrough
+		cj, err := options.Clientset.BatchV1().CronJobs(options.Namespace).Get(options.Context, ref.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		} else {
+			return cronJob{cj}, nil
+		}
 	case "DaemonSet":
-		fallthrough
+		ds, err := options.Clientset.AppsV1().DaemonSets(options.Namespace).Get(options.Context, ref.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		} else {
+			return daemonSet{ds}, nil
+		}
 	case "StatefulSet":
-		fallthrough
+		ss, err := options.Clientset.AppsV1().StatefulSets(options.Namespace).Get(options.Context, ref.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		} else {
+			return statefulSet{ss}, nil
+		}
 	default:
-		return nil, nil
+		return nil, errors.New(fmt.Sprintf("Unsupported owner %s: %s\n", ref.Kind, ref.Name))
 	}
 }
