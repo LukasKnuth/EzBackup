@@ -52,7 +52,7 @@ For other use-cases like static asset hosting, this might not be required.`,
 		}
 		fmt.Printf("Should scale %d resources\n", len(tree))
 		for _, res := range tree {
-			fmt.Printf("  %s: %s\n", res.MetaKind(), res.MetaName())
+			fmt.Printf("  %s: %s\n", res.Kind(), res.Name())
 		}
 	},
 }

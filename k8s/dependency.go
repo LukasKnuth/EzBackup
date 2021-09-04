@@ -12,17 +12,17 @@ import (
 )
 
 type Dependency interface {
-	MetaName() string
-	MetaKind() string
+	Name() string
+	Kind() string
 	Owners() []metav1.OwnerReference
 }
 
 type pod struct { *corev1.Pod }
 
-func (p pod) MetaName() string {
-	return p.Name
+func (p pod) Name() string {
+	return p.Pod.Name
 }
-func (p pod) MetaKind() string {
+func (p pod) Kind() string {
 	return "Pod"
 }
 func (p pod) Owners() []metav1.OwnerReference {
@@ -31,10 +31,10 @@ func (p pod) Owners() []metav1.OwnerReference {
 
 type deployment struct { *appsv1.Deployment }
 
-func (r deployment) MetaName() string {
-	return r.Name
+func (r deployment) Name() string {
+	return r.Deployment.Name
 }
-func (r deployment) MetaKind() string {
+func (r deployment) Kind() string {
 	return "Deployment"
 }
 func (r deployment) Owners() []metav1.OwnerReference {
@@ -43,10 +43,10 @@ func (r deployment) Owners() []metav1.OwnerReference {
 
 type replicaSet struct { *appsv1.ReplicaSet }
 
-func (r replicaSet) MetaName() string {
-	return r.Name
+func (r replicaSet) Name() string {
+	return r.ReplicaSet.Name
 }
-func (r replicaSet) MetaKind() string {
+func (r replicaSet) Kind() string {
 	return "ReplicaSet"
 }
 func (r replicaSet) Owners() []metav1.OwnerReference {
@@ -55,10 +55,10 @@ func (r replicaSet) Owners() []metav1.OwnerReference {
 
 type job struct { *batchv1.Job }
 
-func (r job) MetaName() string {
-	return r.Name
+func (r job) Name() string {
+	return r.Job.Name
 }
-func (r job) MetaKind() string {
+func (r job) Kind() string {
 	return "Job"
 }
 func (r job) Owners() []metav1.OwnerReference {
@@ -67,10 +67,10 @@ func (r job) Owners() []metav1.OwnerReference {
 
 type cronJob struct { *batchv1.CronJob }
 
-func (r cronJob) MetaName() string {
-	return r.Name
+func (r cronJob) Name() string {
+	return r.CronJob.Name
 }
-func (r cronJob) MetaKind() string {
+func (r cronJob) Kind() string {
 	return "CronJob"
 }
 func (r cronJob) Owners() []metav1.OwnerReference {
@@ -79,10 +79,10 @@ func (r cronJob) Owners() []metav1.OwnerReference {
 
 type daemonSet struct { *appsv1.DaemonSet }
 
-func (r daemonSet) MetaName() string {
-	return r.Name
+func (r daemonSet) Name() string {
+	return r.DaemonSet.Name
 }
-func (r daemonSet) MetaKind() string {
+func (r daemonSet) Kind() string {
 	return "DaemonSet"
 }
 func (r daemonSet) Owners() []metav1.OwnerReference {
@@ -91,10 +91,10 @@ func (r daemonSet) Owners() []metav1.OwnerReference {
 
 type statefulSet struct { *appsv1.StatefulSet }
 
-func (r statefulSet) MetaName() string {
-	return r.Name
+func (r statefulSet) Name() string {
+	return r.StatefulSet.Name
 }
-func (r statefulSet) MetaKind() string {
+func (r statefulSet) Kind() string {
 	return "StatefulSet"
 }
 func (r statefulSet) Owners() []metav1.OwnerReference {
@@ -116,7 +116,7 @@ func doDependencyTree(resource Dependency, toScale []Dependency, level int, opti
 			if err != nil {
 				return nil, err
 			} else if ownerRes != nil {
-				fmt.Printf("%sowned by %s: %s\n", strings.Repeat(" ", level), ownerRes.MetaKind(), ownerRes.MetaName())
+				fmt.Printf("%sowned by %s: %s\n", strings.Repeat(" ", level), ownerRes.Kind(), ownerRes.Name())
 				toScale, err = doDependencyTree(ownerRes, toScale, level + 1, options)
 				if err != nil {
 					return nil, err
