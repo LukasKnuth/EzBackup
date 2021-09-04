@@ -174,6 +174,6 @@ func fetchResource(ref *metav1.OwnerReference, options *RequestOptions) (Depende
 			return statefulSet{ss}, nil
 		}
 	default:
-		return nil, errors.New(fmt.Sprintf("Unsupported owner %s: %s\n", ref.Kind, ref.Name))
+		return nil, errors.New(fmt.Sprintf("Unsupported owner %s: %s", ref.Kind, ref.Name))
 	}
 }

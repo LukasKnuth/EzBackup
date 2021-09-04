@@ -9,6 +9,7 @@ import (
 )
 
 var Namespace string
+var Force bool
 
 // scaleCmd represents the scale command
 var scaleCmd = &cobra.Command{
@@ -40,8 +41,11 @@ For other use-cases like static asset hosting, this might not be required.`,
 			fmt.Printf("Mounted by %s: %s\n", "Pod", pod.Name)	
 			podDependencies, err := k8s.DependencyTree(&pod, options)
 			if err != nil {
-				// todo control via flag what to do: Continue/fail
-				fmt.Print(err)
+				if Force {
+					fmt.Printf("WARN: %s -- Ignoring and continuing because --force was specified\n", err)
+				} else {
+					panic(err.Error())
+				}
 			} else {
 				tree = append(tree, podDependencies...)
 			}
@@ -60,9 +64,12 @@ func init() {
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
+	// todo we probably need to move this into the main file?
 	rootCmd.PersistentFlags().StringVarP(&Namespace, "namespace", "n", "default", "The Kubernetes namespace to work inside of")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	//scaleCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	forceUsage := "When forcing, the command will continue if resources mounting "+
+	"the PVC can't be scaled or are of an unsupported Kind."
+	scaleCmd.Flags().BoolVar(&Force, "force", false, forceUsage)
 }
