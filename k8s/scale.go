@@ -7,18 +7,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type ScaleInfo struct {
-	replicaCount int32
-}
-
-type Scalable interface {
-	ScaleDown(options *RequestOptions, force bool) (ScaleInfo, error)
-	ScaleUp(options *RequestOptions, info *ScaleInfo) error
-}
-
 // Pod
-func (p *pod) ScaleDown(options *RequestOptions, force bool) (info ScaleInfo, err error) {
-	info = ScaleInfo{}
+func (p *pod) Surrender(options *RequestOptions, force bool) (err error) {
 	if force {
 		err = options.Clientset.CoreV1().Pods(options.Namespace).Delete(options.Context, p.Name(), metav1.DeleteOptions{})
 	} else {
@@ -27,70 +17,76 @@ func (p *pod) ScaleDown(options *RequestOptions, force bool) (info ScaleInfo, er
 	return
 }
 
-func (p *pod) ScaleUp(options *RequestOptions, info *ScaleInfo) error {
+func (p *pod) Restore(options *RequestOptions) error {
 	fmt.Printf("The Pod resource can't be scaled up. Re-create Pod: %s manually", p.Kind())
 	return nil
 }
 
 // Deployment
-func (d *deployment) ScaleDown(options *RequestOptions, force bool) (info ScaleInfo, err error) {
-	info = ScaleInfo{}
+func (d *deployment) Surrender(options *RequestOptions, force bool) (err error) {
 	scale, err := options.Clientset.AppsV1().Deployments(options.Namespace).GetScale(options.Context, d.Name(), metav1.GetOptions{})
 	if err != nil {
 		return
 	}
 	fmt.Printf("Scaling Pod: %s from %d to 0 replicas", d.Name(), scale.Spec.Replicas)
-	info.replicaCount = scale.Spec.Replicas
+	d.originalReplicas = scale.Spec.Replicas
 	scale.Spec.Replicas = 0
 	_, err = options.Clientset.AppsV1().Deployments(options.Namespace).UpdateScale(options.Context, d.Name(), scale, metav1.UpdateOptions{})
 	return
 }
 
-func (d *deployment) ScaleUp(options *RequestOptions, info *ScaleInfo) error {
+func (d *deployment) Restore(options *RequestOptions) error {
 	scale, err := options.Clientset.AppsV1().Deployments(options.Namespace).GetScale(options.Context, d.Name(), metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Scaling Pod: %s from 0 to %d replicas", d.Name(), info.replicaCount)
-	scale.Spec.Replicas = info.replicaCount
+	fmt.Printf("Scaling Pod: %s from 0 to %d replicas", d.Name(), d.originalReplicas)
+	scale.Spec.Replicas = d.originalReplicas
 	_, err = options.Clientset.AppsV1().Deployments(options.Namespace).UpdateScale(options.Context, d.Name(), scale, metav1.UpdateOptions{})
 	return err
 }
 
 // ReplicaSet
-func (rs *replicaSet) ScaleUp(options *RequestOptions, force bool) (info ScaleInfo, err error) {
-	return ScaleInfo{}, nil
+func (rs *replicaSet) Surrender(options *RequestOptions, force bool) (err error) {
+	return nil
 }
 
-func (rs *replicaSet) ScaleDown(options *RequestOptions, info *ScaleInfo) error {
+func (rs *replicaSet) Restore(options *RequestOptions) error {
 	return nil
 }
 
 // job
-func (j *job) ScaleUp(options *RequestOptions, force bool) (info ScaleInfo, err error) {
-	return ScaleInfo{}, nil
+func (j *job) Surrender(options *RequestOptions, force bool) (err error) {
+	return nil
 }
 
-func (j *job) ScaleDown(options *RequestOptions, info *ScaleInfo) error {
+func (j *job) Restore(options *RequestOptions) error {
 	return nil
 }
 
 // cronJob
-func (cj *cronJob) ScaleUp(options *RequestOptions, force bool) (info ScaleInfo, err error) {
-	return ScaleInfo{}, nil
+func (cj *cronJob) Surrender(options *RequestOptions, force bool) (err error) {
+	return nil
 }
 
-func (cj *cronJob) ScaleDown(options *RequestOptions, info *ScaleInfo) error {
+func (cj *cronJob) Restore(options *RequestOptions) error {
 	return nil
 }
 
 // daemonSet
-func (ds *daemonSet) ScaleUp(options *RequestOptions, force bool) (info ScaleInfo, err error) {
-	return ScaleInfo{}, nil
+func (ds *daemonSet) Surrender(options *RequestOptions, force bool) (err error) {
+	return nil
 }
 
-func (ds *daemonSet) ScaleDown(options *RequestOptions, info *ScaleInfo) error {
+func (ds *daemonSet) Restore(options *RequestOptions) error {
 	return nil
 }
 
 // statefulSet
+func (ds *statefulSet) Surrender(options *RequestOptions, force bool) (err error) {
+	return nil
+}
+
+func (ds *statefulSet) Restore(options *RequestOptions) error {
+	return nil
+}

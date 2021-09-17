@@ -35,7 +35,7 @@ For other use-cases like static asset hosting, this might not be required.`,
 			panic(err.Error())
 		}
 
-		tree := make([]k8s.Dependency, 0)
+		tree := make([]k8s.BlockingMountOwner, 0)
 
 		for _, pod := range filtered {
 			fmt.Printf("Mounted by %s: %s\n", "Pod", pod.Name)	
@@ -47,13 +47,19 @@ For other use-cases like static asset hosting, this might not be required.`,
 					panic(err.Error())
 				}
 			} else {
-				tree = append(tree, podDependencies...)
+				tree = append(tree, podDependencies...) // todo can have duplicates! If one deployment creates 2 pods, the deployment is here twice!
 			}
 		}
 		fmt.Printf("Should scale %d resources\n", len(tree))
 		for _, res := range tree {
 			fmt.Printf("  %s: %s\n", res.Kind(), res.Name())
+			res.Surrender(options, Force)
 		}
+		if len(tree) > 0 {
+			k8s.AwaitTermination(filtered, options)
+			fmt.Printf("All dependencies shut down, continuing...")
+		}
+		// todo run backup, scale back up!
 	},
 }
 
