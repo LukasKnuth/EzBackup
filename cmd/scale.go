@@ -59,6 +59,12 @@ For other use-cases like static asset hosting, this might not be required.`,
 			k8s.AwaitTermination(filtered, options)
 			fmt.Println("All dependencies shut down, continuing...")
 		}
+		fmt.Println("PRETENDING: backup...") // todo how can we "return" here and continue afterwads?
+		fmt.Printf("Scaling %d resources back up\n", len(tree))
+		for _, res := range tree {
+			fmt.Printf("  %s: %s\n", res.Kind(), res.Name())
+			res.Restore(options)
+		}
 	},
 }
 
