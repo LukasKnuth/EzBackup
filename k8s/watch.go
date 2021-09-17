@@ -22,7 +22,7 @@ func AwaitTermination(pods []corev1.Pod, options *RequestOptions) {
 			podName := obj.(metav1.Object).GetName()
 			_, ok := lookup[podName]
 			if ok {
-				fmt.Printf("Pod: %s was deleted", podName)
+				fmt.Printf("Pod: %s was deleted\n", podName)
 			}
 			delete(lookup, podName)
 			if len(lookup) == 0 {

@@ -57,9 +57,8 @@ For other use-cases like static asset hosting, this might not be required.`,
 		}
 		if len(tree) > 0 {
 			k8s.AwaitTermination(filtered, options)
-			fmt.Printf("All dependencies shut down, continuing...")
+			fmt.Println("All dependencies shut down, continuing...")
 		}
-		// todo run backup, scale back up!
 	},
 }
 

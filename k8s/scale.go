@@ -18,7 +18,7 @@ func (p *pod) Surrender(options *RequestOptions, force bool) (err error) {
 }
 
 func (p *pod) Restore(options *RequestOptions) error {
-	fmt.Printf("The Pod resource can't be scaled up. Re-create Pod: %s manually", p.Kind())
+	fmt.Printf("The Pod resource can't be scaled up. Re-create Pod: %s manually\n", p.Kind())
 	return nil
 }
 
@@ -28,7 +28,7 @@ func (d *deployment) Surrender(options *RequestOptions, force bool) (err error) 
 	if err != nil {
 		return
 	}
-	fmt.Printf("Scaling Pod: %s from %d to 0 replicas", d.Name(), scale.Spec.Replicas)
+	fmt.Printf("Scaling Pod: %s from %d to 0 replicas\n", d.Name(), scale.Spec.Replicas)
 	d.originalReplicas = scale.Spec.Replicas
 	scale.Spec.Replicas = 0
 	_, err = options.Clientset.AppsV1().Deployments(options.Namespace).UpdateScale(options.Context, d.Name(), scale, metav1.UpdateOptions{})
@@ -40,7 +40,7 @@ func (d *deployment) Restore(options *RequestOptions) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Scaling Pod: %s from 0 to %d replicas", d.Name(), d.originalReplicas)
+	fmt.Printf("Scaling Pod: %s from 0 to %d replicas\n", d.Name(), d.originalReplicas)
 	scale.Spec.Replicas = d.originalReplicas
 	_, err = options.Clientset.AppsV1().Deployments(options.Namespace).UpdateScale(options.Context, d.Name(), scale, metav1.UpdateOptions{})
 	return err
