@@ -14,8 +14,6 @@ func AwaitTermination(pods []corev1.Pod, options *RequestOptions) {
 	lookup := makeLookup(pods)
 	informer := makeInformer(options)
 	stopper := make(chan struct{})
-	// In case of errors, make sure we stop watching
-	defer close(stopper)
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		DeleteFunc: func(obj interface{}) {
