@@ -50,21 +50,22 @@ For other use-cases like static asset hosting, this might not be required.`,
 				tree = append(tree, podDependencies...) // todo can have duplicates! If one deployment creates 2 pods, the deployment is here twice!
 			}
 		}
-		fmt.Printf("Should scale %d resources\n", len(tree))
-		for _, res := range tree {
-			fmt.Printf("  %s: %s\n", res.Kind(), res.Name())
-			res.Surrender(options, Force)
-		}
 		if len(tree) > 0 {
-			k8s.AwaitTermination(filtered, options)
-			fmt.Println("All dependencies shut down, continuing...")
-		}
-		fmt.Println("PRETENDING: backup...") // todo how can we "return" here and continue afterwads?
-		fmt.Printf("Scaling %d resources back up\n", len(tree))
-		for _, res := range tree {
-			fmt.Printf("  %s: %s\n", res.Kind(), res.Name())
-			res.Restore(options)
-		}
+			fmt.Printf("Should scale %d resources\n", len(tree))
+			term_signal := k8s.AwaitTermination(filtered, options)
+			for _, res := range tree {
+				fmt.Printf("  %s: %s\n", res.Kind(), res.Name())
+				res.Surrender(options, Force)
+			}
+			result := <-term_signal
+			fmt.Printf("All dependencies shut down with result '%s', continuing...\n", result)
+			fmt.Println("PRETENDING: backup...") // todo how can we "return" here and continue afterwads?
+			fmt.Printf("Scaling %d resources back up\n", len(tree))
+			for _, res := range tree {
+				fmt.Printf("  %s: %s\n", res.Kind(), res.Name())
+				res.Restore(options)
+			}
+		}		
 	},
 }
 

@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"fmt"
+	"time"
 
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
@@ -10,10 +11,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AwaitTermination(pods []corev1.Pod, options *RequestOptions) {
+func AwaitTermination(pods []corev1.Pod, options *RequestOptions) (<-chan string) {
 	lookup := makeLookup(pods)
 	informer := makeInformer(options)
 	stopper := make(chan struct{})
+	done := make(chan string) // todo when timeout is here, send success info!
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		DeleteFunc: func(obj interface{}) {
@@ -25,18 +27,19 @@ func AwaitTermination(pods []corev1.Pod, options *RequestOptions) {
 			delete(lookup, podName)
 			if len(lookup) == 0 {
 				close(stopper)
+				done <- "success"
 			}
 		},
 	})
 
 	// todo add timeout option (and parameter) and close stopper when time runs out.
-
 	// Blocks until "stopper" channel is closed
-	informer.Run(stopper)
+	go informer.Run(stopper)
+	return done
 }
 
 func makeInformer(options *RequestOptions) cache.SharedIndexInformer {
-	factory := informers.NewSharedInformerFactory(options.Clientset, 0) // todo change manual refresh cycle?
+	factory := informers.NewSharedInformerFactory(options.Clientset, time.Second)
 	return factory.Core().V1().Pods().Informer()
 }
 
