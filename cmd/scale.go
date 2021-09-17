@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/LukasKnuth/EzBackup/k8s"
+	"github.com/LukasKnuth/EzBackup/util"
 
 	"github.com/spf13/cobra"
 )
@@ -35,7 +36,7 @@ For other use-cases like static asset hosting, this might not be required.`,
 			panic(err.Error())
 		}
 
-		tree := make([]k8s.BlockingMountOwner, 0)
+		tree := util.MakeSet(len(filtered)) // could be smaller, but this is a good guess...
 
 		for _, pod := range filtered {
 			fmt.Printf("Mounted by %s: %s\n", "Pod", pod.Name)	
@@ -47,7 +48,7 @@ For other use-cases like static asset hosting, this might not be required.`,
 					panic(err.Error())
 				}
 			} else {
-				tree = append(tree, podDependencies...) // todo can have duplicates! If one deployment creates 2 pods, the deployment is here twice!
+				tree.PutAll(podDependencies)
 			}
 		}
 		if len(tree) > 0 {
