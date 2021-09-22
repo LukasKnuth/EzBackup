@@ -11,11 +11,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AwaitTermination(pods []corev1.Pod, options *RequestOptions) (<-chan string) {
+type AwaitResult int32
+const (
+	Completed AwaitResult = iota
+	Timeout AwaitResult = iota
+)
+
+func AwaitTermination(pods []corev1.Pod, options *RequestOptions, timeout time.Duration) (<-chan AwaitResult) {
 	lookup := makeLookup(pods)
 	informer := makeInformer(options)
 	stopper := make(chan struct{})
-	done := make(chan string) // todo when timeout is here, send success info!
+	// Buffer one. If timeout stops informer and DeleteFunc wants to send result, it doesn't block but is never used.
+	// This prevents the goroutine from lingering, since it blocks on sending forever.
+	internalChan := make(chan AwaitResult, 1)
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		DeleteFunc: func(obj interface{}) {
@@ -26,16 +34,28 @@ func AwaitTermination(pods []corev1.Pod, options *RequestOptions) (<-chan string
 			}
 			delete(lookup, podName)
 			if len(lookup) == 0 {
-				close(stopper)
-				done <- "success"
+				internalChan <- Completed
 			}
 		},
 	})
 
-	// todo add timeout option (and parameter) and close stopper when time runs out.
+	resultChan := make(chan AwaitResult)
+	go func() {
+		select {
+		case res := <-internalChan:
+			// We're done before the timeout. Return!
+			close(stopper)
+			resultChan <- res
+		case <-time.After(timeout):
+			// timeout!
+			close(stopper)
+			resultChan <- Timeout
+		}
+	}()
+
 	// Blocks until "stopper" channel is closed
 	go informer.Run(stopper)
-	return done
+	return resultChan
 }
 
 func makeInformer(options *RequestOptions) cache.SharedIndexInformer {

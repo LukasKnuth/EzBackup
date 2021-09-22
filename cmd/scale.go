@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/LukasKnuth/EzBackup/k8s"
 	"github.com/LukasKnuth/EzBackup/util"
@@ -11,6 +12,7 @@ import (
 
 var Namespace string
 var Force bool
+var Timeout time.Duration
 
 // scaleCmd represents the scale command
 var scaleCmd = &cobra.Command{
@@ -23,7 +25,7 @@ data to disc is to shut the application down.
 For other use-cases like static asset hosting, this might not be required.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Command: scale\nPersistent Volume Claim: %s\nNamespace: %s\n\n", args[0], Namespace)
+		fmt.Printf("Command: scale\nPersistent Volume Claim: %s\nNamespace: %s\nTimeout: %s\n\n", args[0], Namespace, Timeout)
 
 		options, err := k8s.FromKubeconfig("/Users/lukasknuth/k3sup/kubeconfig", Namespace)
 		if err != nil {
@@ -53,20 +55,24 @@ For other use-cases like static asset hosting, this might not be required.`,
 		}
 		if len(tree) > 0 {
 			fmt.Printf("Should scale %d resources\n", len(tree))
-			term_signal := k8s.AwaitTermination(filtered, options)
+			term_signal := k8s.AwaitTermination(filtered, options, Timeout)
 			for _, res := range tree {
 				fmt.Printf("  %s: %s\n", res.Kind(), res.Name())
 				res.Surrender(options, Force)
 			}
-			result := <-term_signal
-			fmt.Printf("All dependencies shut down with result '%s', continuing...\n", result)
-			fmt.Println("PRETENDING: backup...") // todo how can we "return" here and continue afterwads?
-			fmt.Printf("Scaling %d resources back up\n", len(tree))
-			for _, res := range tree {
-				fmt.Printf("  %s: %s\n", res.Kind(), res.Name())
-				res.Restore(options)
+			if (<-term_signal == k8s.Timeout) {
+				fmt.Println("Timed out waiting for Pods to go down!")
+				// todo do we restore everything here?
+			} else {
+				fmt.Println("All dependencies shut down, continuing...")
+				fmt.Println("PRETENDING: backup...") // todo how can we "return" here and continue afterwads?
+				fmt.Printf("Scaling %d resources back up\n", len(tree))
+				for _, res := range tree {
+					fmt.Printf("  %s: %s\n", res.Kind(), res.Name())
+					res.Restore(options)
+				}
 			}
-		}		
+		}
 	},
 }
 
@@ -85,4 +91,7 @@ func init() {
 	forceUsage := "When forcing, the command will continue if resources mounting "+
 	"the PVC can't be scaled or are of an unsupported Kind."
 	scaleCmd.Flags().BoolVar(&Force, "force", false, forceUsage)
+
+	timeoutUsage := "Specifies a duration to wait for active Pods with write mount to shut down."
+	scaleCmd.Flags().DurationVar(&Timeout, "timeout", 2 * time.Minute, timeoutUsage)
 }
