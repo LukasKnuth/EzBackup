@@ -46,6 +46,7 @@ func (d *deployment) Restore(options *RequestOptions) error {
 	return err
 }
 
+// todo all below!
 // ReplicaSet
 func (rs *replicaSet) Surrender(options *RequestOptions, force bool) (err error) {
 	return nil
