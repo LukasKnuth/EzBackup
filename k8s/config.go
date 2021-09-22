@@ -39,7 +39,7 @@ func fromRestConfig(config *rest.Config, namespace string) (*RequestOptions, err
 	} else {
 		return &RequestOptions{
 			Clientset: clientset,
-			Context: context.TODO(), // todo what do use here?
+			Context: context.Background(),
 			Namespace: namespace,
 		}, nil
 	}
