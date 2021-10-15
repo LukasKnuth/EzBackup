@@ -30,14 +30,19 @@ func ScaleDown(pvcName string, options *k8s.RequestOptions, force bool, timeout 
 			tree.PutAll(podDependencies)
 		}
 	}
+
+	// Output only.
+	fmt.Printf("Should scale %d resources\n", len(tree))
+	for _, res := range tree {
+		fmt.Printf("  %s: %s\n", res.Kind(), res.Name())
+	}
+
 	if len(tree) > 0 {
-		fmt.Printf("Should scale %d resources\n", len(tree))
 		term_signal := k8s.AwaitTermination(filtered, options, timeout)
 		for _, res := range tree {
-			fmt.Printf("  %s: %s\n", res.Kind(), res.Name())
 			err := res.Surrender(options, force)
-			if err != nil { // todo better way?
-				return nil, err
+			if err != nil {
+				return nil, err // todo do we need to stop the await here?
 			}
 		}
 		if <-term_signal == k8s.Timeout {

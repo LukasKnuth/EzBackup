@@ -12,7 +12,7 @@ func (p *pod) Surrender(options *RequestOptions, force bool) (err error) {
 	if force {
 		err = options.Clientset.CoreV1().Pods(options.Namespace).Delete(options.Context, p.Name(), metav1.DeleteOptions{})
 	} else {
-		err = errors.New("The Pod resource does not support non-destructive scaling.")
+		err = errors.New(fmt.Sprintf("%s: The Pod resource does not support non-destructive scaling.", p.Name()))
 	}
 	return
 }
@@ -28,7 +28,7 @@ func (d *deployment) Surrender(options *RequestOptions, force bool) (err error) 
 	if err != nil {
 		return
 	}
-	fmt.Printf("Scaling Pod: %s from %d to 0 replicas\n", d.Name(), scale.Spec.Replicas)
+	fmt.Printf("%s: Scaling Deployment from %d to 0 replicas\n", d.Name(), scale.Spec.Replicas)
 	d.originalReplicas = scale.Spec.Replicas
 	scale.Spec.Replicas = 0
 	_, err = options.Clientset.AppsV1().Deployments(options.Namespace).UpdateScale(options.Context, d.Name(), scale, metav1.UpdateOptions{})
@@ -40,7 +40,7 @@ func (d *deployment) Restore(options *RequestOptions) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Scaling Pod: %s from 0 to %d replicas\n", d.Name(), d.originalReplicas)
+	fmt.Printf("%s, Scaling Deployment from 0 to %d replicas\n", d.Name(), d.originalReplicas)
 	scale.Spec.Replicas = d.originalReplicas
 	_, err = options.Clientset.AppsV1().Deployments(options.Namespace).UpdateScale(options.Context, d.Name(), scale, metav1.UpdateOptions{})
 	return err
