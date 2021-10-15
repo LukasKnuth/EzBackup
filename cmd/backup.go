@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/LukasKnuth/EzBackup/k8s"
@@ -36,6 +37,7 @@ For other use-cases like static asset hosting, this might not be required.`,
 		owners, err := operations.ScaleDown(pvcName, options, Force, Timeout)
 		if err != nil {
 			fmt.Println("Error while scaling down resources: ", err)
+			os.Exit(1)
 		}
 
 		operations.Backup()
