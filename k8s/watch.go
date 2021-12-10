@@ -59,7 +59,8 @@ func AwaitTermination(pods []corev1.Pod, options *RequestOptions, timeout time.D
 }
 
 func makeInformer(options *RequestOptions) cache.SharedIndexInformer {
-	factory := informers.NewSharedInformerFactory(options.Clientset, time.Second)
+	opts := informers.WithNamespace(options.Namespace)
+	factory := informers.NewSharedInformerFactoryWithOptions(options.Clientset, time.Second, opts)
 	return factory.Core().V1().Pods().Informer()
 }
 
