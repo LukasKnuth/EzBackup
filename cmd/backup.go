@@ -24,12 +24,13 @@ writing to it first. An example is a database, which keeps data in-memory. A rel
 data to disc is to shut the application down.
 
 For other use-cases like static asset hosting, this might not be required.`,
+// todo document restic specific environment variables. Need to use other dependency to automate this???
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		pvcName := args[0]
 		fmt.Printf("Command: backup\nPersistent Volume Claim: %s\nNamespace: %s\nTimeout: %s\n\n", pvcName, Namespace, Timeout)
 
-		options, err := k8s.FromKubeconfig("/Users/lukasknuth/k3sup/kubeconfig", Namespace)
+		options, err := k8s.InCluster(Namespace)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -40,7 +41,10 @@ For other use-cases like static asset hosting, this might not be required.`,
 			os.Exit(1)
 		}
 
-		operations.Backup()
+		err = operations.Backup(pvcName)
+		if err != nil {
+			fmt.Println("Error while running backup: ", err)
+		}
 
 		err = operations.ScaleUp(owners, options)
 	},
