@@ -1,4 +1,6 @@
 .tool-versions
 Dockerfile
 EzBackup
+
 examples/
+install/
