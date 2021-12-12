@@ -16,15 +16,11 @@ RUN cd /build && go mod download
 # This is where the build process splits, everything before this is cached/executed once!
 ARG TARGETOS TARGETARCH
 
-# Build EzBackup
-WORKDIR /build
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o /out/EzBackup
+# Build
+RUN cd /build && GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o /out/EzBackup
+RUN cd /restic && go run build.go --goos $TARGETOS --goarch $TARGETARCH -o /out/restic
 
-# Build restic
-WORKDIR /restic
-RUN go run build.go --goos $TARGETOS --goarch $TARGETARCH -o /out/restic
-
-FROM gcr.io/distroless/base-debian11
+FROM scratch
 COPY --from=builder /out/ /app/
 ENTRYPOINT ["/app/EzBackup"]
 CMD ["help"]
