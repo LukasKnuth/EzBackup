@@ -4,12 +4,12 @@ ENV LANG=C.UTF-8
 # Build truely static executables, no C dependencies.
 ENV CGO_ENABLED=0
 
-# Download/Copy sources
-RUN git clone https://github.com/restic/restic /restic
-COPY . /build/
-
-# Download dependencies
+# Download restic and fetch dependencies
+RUN git clone --depth 1 -- branch v0.12.1 https://github.com/restic/restic /restic
 RUN cd /restic && go mod download
+
+# Copy EzBackup and fetch dependencies
+COPY . /build/
 RUN cd /build && go mod download
 
 # Architecture to build the executable for (set by "buildx")
@@ -20,6 +20,7 @@ ARG TARGETOS TARGETARCH
 RUN cd /build && GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o /out/EzBackup
 RUN cd /restic && go run build.go --goos $TARGETOS --goarch $TARGETARCH -o /out/restic
 
+# Create final platform-specific image
 FROM scratch
 COPY --from=builder /out/ /app/
 ENTRYPOINT ["/app/EzBackup"]
