@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/LukasKnuth/EzBackup/k8s"
 	"github.com/LukasKnuth/EzBackup/operations"
 
 	"github.com/spf13/cobra"
@@ -24,27 +23,27 @@ For other use-cases like static asset hosting, this might not be required.`,
 		pvcName := args[0]
 		fmt.Printf("Command: backup\nPersistent Volume Claim: %s\nNamespace: %s\nTimeout: %s\n\n", pvcName, Flags.Namespace, Flags.Timeout)
 
-		options, err := k8s.InCluster(Flags.Namespace)
+		options, err := operations.AutoConfigure(&Flags)
 		if err != nil {
-			fmt.Println("Couldn't establish connection to Kubernetes API server", err)
+			fmt.Println("Couldn't establish connection to Kubernetes API server:", err)
 			os.Exit(1)
 		}
 
 		owners, err := operations.ScaleDown(pvcName, options, Flags.Force, Flags.Timeout)
 		if err != nil {
-			fmt.Println("Error while scaling down resources: ", err)
+			fmt.Println("Error while scaling down resources:", err)
 			os.Exit(1)
 		}
 
 		err = operations.Backup(pvcName)
 		if err != nil {
-			fmt.Println("Error while running backup: ", err)
+			fmt.Println("Error while running backup:", err)
 			fmt.Println("Proceeding to scale-up to restore cluster state...")
 		}
 
 		err = operations.ScaleUp(owners, options)
 		if err != nil {
-			fmt.Println("Error while scaling up resources: ", err)
+			fmt.Println("Error while scaling up resources:", err)
 			os.Exit(1)
 		}
 	},

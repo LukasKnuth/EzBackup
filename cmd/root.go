@@ -25,7 +25,10 @@ func Execute() {
 func init() {
 	// Cobra also local flags "Flags()" for only this command
 	// Or global flags "PersistentFlags()" for all commands
-	// todo add a flag to change in-cluster config to out-cluster and specify the kubefile file.
+	
+	kubeconfigUsage := "If specified, uses the given Kubeconfig file instead of the in-cluster auto configuration "+
+	"to talk to the Kubernetes API Server.\nThis is helpful for testing from outside the cluster, for example."
+	rootCmd.PersistentFlags().StringVar(&Flags.Kubeconfig, "kubeconfig", "", kubeconfigUsage)
 
 	rootCmd.PersistentFlags().StringVarP(&Flags.Namespace, "namespace", "n", "default", "The Kubernetes namespace to work inside of")
 
