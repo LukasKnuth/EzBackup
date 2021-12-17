@@ -4,11 +4,11 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"github.com/LukasKnuth/EzBackup/util"
 )
 
-var Namespace string
-var Force bool
-var Timeout time.Duration
+var Flags util.Flags
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -26,13 +26,13 @@ func init() {
 	// Cobra also local flags "Flags()" for only this command
 	// Or global flags "PersistentFlags()" for all commands
 	// todo add a flag to change in-cluster config to out-cluster and specify the kubefile file.
-	
-	rootCmd.PersistentFlags().StringVarP(&Namespace, "namespace", "n", "default", "The Kubernetes namespace to work inside of")
+
+	rootCmd.PersistentFlags().StringVarP(&Flags.Namespace, "namespace", "n", "default", "The Kubernetes namespace to work inside of")
 
 	forceUsage := "When forcing, the command will continue if resources mounting "+
 	"the PVC can't be scaled or are of an unsupported Kind."
-	rootCmd.PersistentFlags().BoolVar(&Force, "force", false, forceUsage)
+	rootCmd.PersistentFlags().BoolVar(&Flags.Force, "force", false, forceUsage)
 
 	timeoutUsage := "Specifies a duration to wait for active Pods with write mount to shut down."
-	rootCmd.PersistentFlags().DurationVar(&Timeout, "timeout", 2 * time.Minute, timeoutUsage)
+	rootCmd.PersistentFlags().DurationVar(&Flags.Timeout, "timeout", 2 * time.Minute, timeoutUsage)
 }

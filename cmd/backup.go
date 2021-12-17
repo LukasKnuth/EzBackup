@@ -22,15 +22,15 @@ For other use-cases like static asset hosting, this might not be required.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		pvcName := args[0]
-		fmt.Printf("Command: backup\nPersistent Volume Claim: %s\nNamespace: %s\nTimeout: %s\n\n", pvcName, Namespace, Timeout)
+		fmt.Printf("Command: backup\nPersistent Volume Claim: %s\nNamespace: %s\nTimeout: %s\n\n", pvcName, Flags.Namespace, Flags.Timeout)
 
-		options, err := k8s.InCluster(Namespace)
+		options, err := k8s.InCluster(Flags.Namespace)
 		if err != nil {
 			fmt.Println("Couldn't establish connection to Kubernetes API server", err)
 			os.Exit(1)
 		}
 
-		owners, err := operations.ScaleDown(pvcName, options, Force, Timeout)
+		owners, err := operations.ScaleDown(pvcName, options, Flags.Force, Flags.Timeout)
 		if err != nil {
 			fmt.Println("Error while scaling down resources: ", err)
 			os.Exit(1)
