@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/LukasKnuth/EzBackup/operations"
 
@@ -19,20 +18,20 @@ data to disc is to shut the application down.
 For other use-cases like static asset hosting, this might not be required.`,
 // todo document restic specific environment variables. Need to use other dependency to automate this???
 	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		pvcName := args[0]
 		fmt.Printf("Command: backup\nPersistent Volume Claim: %s\nNamespace: %s\nTimeout: %s\n\n", pvcName, Flags.Namespace, Flags.Timeout)
 
 		options, err := operations.AutoConfigure(&Flags)
 		if err != nil {
 			fmt.Println("Couldn't establish connection to Kubernetes API server:", err)
-			os.Exit(1)
+			return
 		}
 
 		owners, err := operations.ScaleDown(pvcName, options, Flags.Force, Flags.Timeout)
 		if err != nil {
 			fmt.Println("Error while scaling down resources:", err)
-			os.Exit(1)
+			return
 		}
 
 		err = operations.Backup(pvcName)
@@ -44,8 +43,11 @@ For other use-cases like static asset hosting, this might not be required.`,
 		err = operations.ScaleUp(owners, options)
 		if err != nil {
 			fmt.Println("Error while scaling up resources:", err)
-			os.Exit(1)
+			return
 		}
+
+		// All good!
+		return nil
 	},
 }
 
