@@ -1,8 +1,14 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 )
+
+var Namespace string
+var Force bool
+var Timeout time.Duration
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -17,8 +23,16 @@ func Execute() {
 }
 
 func init() {
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	//rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// Cobra also local flags "Flags()" for only this command
+	// Or global flags "PersistentFlags()" for all commands
 	// todo add a flag to change in-cluster config to out-cluster and specify the kubefile file.
+	
+	rootCmd.PersistentFlags().StringVarP(&Namespace, "namespace", "n", "default", "The Kubernetes namespace to work inside of")
+
+	forceUsage := "When forcing, the command will continue if resources mounting "+
+	"the PVC can't be scaled or are of an unsupported Kind."
+	rootCmd.PersistentFlags().BoolVar(&Force, "force", false, forceUsage)
+
+	timeoutUsage := "Specifies a duration to wait for active Pods with write mount to shut down."
+	rootCmd.PersistentFlags().DurationVar(&Timeout, "timeout", 2 * time.Minute, timeoutUsage)
 }
