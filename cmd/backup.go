@@ -32,7 +32,8 @@ For other use-cases like static asset hosting, this might not be required.`,
 
 		options, err := k8s.InCluster(Namespace)
 		if err != nil {
-			panic(err.Error())
+			fmt.Println("Couldn't establish connection to Kubernetes API server", err)
+			os.Exit(1)
 		}
 
 		owners, err := operations.ScaleDown(pvcName, options, Force, Timeout)
@@ -44,9 +45,14 @@ For other use-cases like static asset hosting, this might not be required.`,
 		err = operations.Backup(pvcName)
 		if err != nil {
 			fmt.Println("Error while running backup: ", err)
+			fmt.Println("Proceeding to scale-up to restore cluster state...")
 		}
 
 		err = operations.ScaleUp(owners, options)
+		if err != nil {
+			fmt.Println("Error while scaling up resources: ", err)
+			os.Exit(1)
+		}
 	},
 }
 
