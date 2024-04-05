@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> This code works, but I never ran it in production for long.
+> The issue it tries to solve (specificall for SQLite Databases) can also be solved with [Lightstream](https://litestream.io/) or [Cron script](https://litestream.io/alternatives/cron/)
+> I'm keeping the repository as an exhibit, you should probably not actually use this.
+
 # EzBackup
 
 Easy, simple backup solution for [Persistent Volume Claims](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) in your Kubernetes Cluster.
